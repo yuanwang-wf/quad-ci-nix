@@ -11,26 +11,34 @@
 
     flake-utils.lib.eachDefaultSystem (system:
       let
-        overlay = final: prev: { };
+        overlay = final: prev: {
+          haskellPackages = prev.haskellPackages.override {
+            overrides = hself: hsuper: {
+
+              quad = hself.callCabal2nix "quad"
+                (final.nix-gitignore.gitignoreSourcePure [ ./.gitignore ] ./.)
+                { };
+            };
+          };
+          quad =
+            final.haskell.lib.justStaticExecutables final.haskellPackages.quad;
+
+        };
         pkgs = import nixpkgs {
           inherit system;
           overlays = [ devshell.overlay overlay ];
         };
 
         myHaskellEnv = (pkgs.haskellPackages.ghcWithHoogle (p:
-          with p; [
-            cabal-install
-            ormolu
-            hlint
-            brittany
-            record-dot-preprocessor
-          ]));
+          with p;
+          [ cabal-install ormolu hlint brittany record-dot-preprocessor ]
+          ++ pkgs.quad.buildInputs));
 
       in rec {
 
-        defaultPackage = pkgs.hello;
+        defaultPackage = pkgs.quad;
         devShell = pkgs.devshell.mkShell {
-          name = "dev-shell";
+          name = "quad-dev-shell";
           env = [
             {
               name = "HIE_HOOGLE_DATABASE";

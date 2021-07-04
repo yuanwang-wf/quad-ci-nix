@@ -1,0 +1,132 @@
+#+TITLE: Walk-through the Simple Haskell Handbook
+
+* Goals
+** walk through the Simple Haskell Handbook
+** Build with Nix
+** Replace front-end with purescript
+
+
+* bootstrap the project
+How to bootstrap a haskell project with Nix ?
+
+ hpack over cabal init ?
+ devshell
+
+** a mini devshell with cabal and hpack
+#+begin_src nix
+{
+  description = "Walkthrough of The Simple Haskell Handbook";
+
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
+    flake-utils.url = "github:numtide/flake-utils/master";
+    devshell.url = "github:numtide/devshell/master";
+  };
+
+  outputs = { self, nixpkgs, flake-utils, devshell }:
+
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        overlay = final: prev: {
+
+        };
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = [ devshell.overlay overlay ];
+        };
+
+        myHaskellEnv = (pkgs.haskellPackages.ghcWithHoogle (p:
+          with p;
+          [ cabal-install ormolu hlint brittany record-dot-preprocessor ]));
+
+      in rec {
+
+        defaultPackage = pkgs.quad;
+        devShell = pkgs.devshell.mkShell {
+          name = "quad-dev-shell";
+          env = [
+            {
+              name = "HIE_HOOGLE_DATABASE";
+              value = "${myHaskellEnv}/share/doc/hoogle/default.hoo";
+            }
+            {
+              name = "NIX_GHC";
+              value = "${myHaskellEnv}/bin/ghc";
+            }
+            {
+              name = "NIX_GHCPKG";
+              value = "${myHaskellEnv}/bin/ghc-pkg";
+            }
+          ];
+          packages = [ myHaskellEnv pkgs.nixpkgs-fmt pkgs.hpack ];
+        };
+      });
+}
+#+end_src
+
+** let's make bare minimal haskell project
+
+  ~package.yaml~
+#+begin_src yaml
+
+name: quad
+
+default-extensions:
+  - BlockArguments
+  - DeriveAnyClass
+  - DeriveGeneric
+  - LambdaCase
+  - NoImplicitPrelude
+  - OverloadedStrings
+  - StrictData
+
+dependencies:
+  - aeson
+  - async
+  - base
+  - butcher
+  - hslogger
+  - http-client
+  - http-conduit
+  - http-types
+  - network
+  - record-hasfield
+  - rio
+  - scotty
+  - serialise
+  - stm
+  - time
+  - typed-process
+  - wai-cors
+  - yaml
+  - record-dot-preprocessor
+
+ghc-options:
+  - -F -pgmF=record-dot-preprocessor
+
+library:
+  source-dirs: src
+
+executables:
+  quad:
+    main: Main.hs
+    source-dirs: app
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - quad
+
+tests:
+  quad-test:
+    main: Spec.hs
+    source-dirs: test
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - quad
+      - hspec
+#+end_src

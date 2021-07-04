@@ -6,3 +6,5 @@ fresh/
 part-one-finished/
 build/*pdf
 build/*html
+dist-newstyle/
+result

@@ -4,7 +4,7 @@
 ** walk through the Simple Haskell Handbook
 ** Build with Nix
 ** Replace front-end with purescript
-
+** replace scotty with different framework
 
 * bootstrap the project
 How to bootstrap a haskell project with Nix ?
